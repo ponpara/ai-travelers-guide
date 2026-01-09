@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Traveler's Guide</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* --- 基本スタイル定義 --- */
+        :root {
+            --primary-color: #007AFF;
+            --brand-gradient: linear-gradient(135deg, #005bea 0%, #00c6fb 100%);
+            --simple-btn-bg: #E5F9E0;
+            --simple-btn-text: #2E7D32;
+            --detail-btn-bg: #E3F2FD;
+            --detail-btn-text: #1565C0;
+            --bg-color: #F2F2F7;
+            --card-bg: #FFFFFF;
+            --text-main: #1C1C1E;
+            --text-sub: #8E8E93;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --radius-md: 12px;
+            --radius-lg: 20px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', "Helvetica Neue", Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ヘッダー */
+        #brand-header {
+            background: var(--card-bg);
+            padding: 24px 16px 8px 16px;
+            z-index: 10;
+        }
+
+        .brand-title {
+            margin: 0;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+
+        .brand-subtitle {
+            margin: 4px 0 0 0;
+            font-size: 0.9rem;
+            color: var(--text-sub);
+            font-weight: 500;
+        }
+
+        #header-container {
+            background: var(--card-bg);
+            padding: 8px 16px 16px 16px;
+            border-bottom-left-radius: var(--radius-lg);
+            border-bottom-right-radius: var(--radius-lg);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            z-index: 10;
+            position: relative;
+        }
+
+        #header-flex {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* 検索バー周り */
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        #pac-input {
+            width: 100%;
+            padding: 12px 40px 12px 12px;
+            font-size: 16px;
+            border: none;
+            background: var(--bg-color);
+            border-radius: var(--radius-md);
+            outline: none;
+            color: var(--text-main);
+        }
+
+        #clear-search-btn {
+            position: absolute;
+            right: 8px;
+            background: #ccc;
+            border: none;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        #clear-search-btn:active {
+            background: #999;
+        }
+
+        #lang-select {
+            padding: 5px 15px;
+            font-size: 14px;
+            border: none;
+            background: var(--bg-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+
+        /* マップ & リスト */
+        #map-container {
+            flex: 1;
+            position: relative;
+            margin: -10px 0;
+            z-index: 5;
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            border-top: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        /* === 新規: 現在地ボタン === */
+        #current-location-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: white;
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            transition: background 0.2s;
+        }
+
+        #current-location-btn:active {
+            background-color: #f0f0f0;
+            color: var(--primary-color);
+        }
+
+        #current-location-btn.loading svg {
+            animation: spin 1s linear infinite;
+            opacity: 0.5;
+        }
+
+        #controls {
+            flex: 1;
+            background: var(--bg-color);
+            overflow-y: auto;
+            padding: 25px 16px 200px 16px;
+            z-index: 6;
+        }
+
+        #status-header {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+        }
+
+        #status-header span {
+            margin-right: 8px;
+            font-size: 1.4rem;
+        }
+
+        .note-text {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+        }
+
+        /* カード */
+        .spot-card {
+            display: flex;
+            background: var(--card-bg);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-sm);
+            transition: all 0.2s ease;
+            border: 2px solid transparent;
+        }
+
+        .spot-card.playing {
+            border-color: var(--primary-color);
+            background-color: #F8F8FF;
+        }
+
+        .spot-img-box {
+            width: 90px;
+            height: 90px;
+            flex-shrink: 0;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            margin-right: 12px;
+            background: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .spot-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .spot-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .spot-title {
+            font-weight: 700;
+            font-size: 1.05rem;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+
+        /* 評価表示 */
+        .spot-rating {
+            font-size: 0.85rem;
+            color: #ff9500;
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+        }
+
+        .spot-rating span {
+            color: var(--text-sub);
+            font-weight: 400;
+            margin-left: 4px;
+            font-size: 0.8rem;
+        }
+
+        .spot-no-rating {
+            font-size: 0.75rem;
+            color: #ccc;
+            margin-bottom: 6px;
+        }
+
+        .spot-summary {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 8px 0;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.2s;
+        }
+
+        .mode-btn:active {
+            opacity: 0.7;
+        }
+
+        .btn-simple {
+            background-color: var(--simple-btn-bg);
+            color: var(--simple-btn-text);
+        }
+
+        .btn-detail {
+            background-color: var(--detail-btn-bg);
+            color: var(--detail-btn-text);
+        }
+
+        .mode-btn span {
+            margin-right: 4px;
+            font-size: 1rem;
+        }
+
+        /* プレイヤーバー */
+        #audio-player-bar {
+            position: fixed;
+            bottom: -250px;
+            left: 16px;
+            right: 16px;
+            background: rgba(20, 20, 25, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            color: white;
+            padding: 20px 24px;
+            border-radius: 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: bottom 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #audio-player-bar.visible {
+            bottom: 24px;
+        }
+
+        .player-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            width: 100%;
+            margin-bottom: 18px;
+        }
+
+        .player-controls button {
+            background: white;
+            border: none;
+            color: black;
+            border-radius: 50%;
+            width: 52px;
+            height: 52px;
+            cursor: pointer;
+            font-size: 1.4rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s;
+        }
+
+        .player-controls button:active {
+            transform: scale(0.95);
+        }
+
+        .player-controls button.stop-btn {
+            background: rgba(255, 69, 58, 0.2);
+            color: #ff453a;
+        }
+
+        .script-toggle-btn {
+            background: transparent !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            color: white !important;
+            font-size: 0.9rem !important;
+            width: auto !important;
+            height: 40px !important;
+            padding: 0 16px;
+            border-radius: 20px !important;
+        }
+
+        .player-progress-container {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.6);
+            font-family: monospace;
+        }
+
+        input[type=range] {
+            flex: 1;
+            -webkit-appearance: none;
+            background: transparent;
+            height: 4px;
+            border-radius: 2px;
+            cursor: pointer;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 14px;
+            width: 14px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+            margin-top: -5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        /* スクリプト */
+        #script-overlay {
+            position: fixed;
+            bottom: -100%;
+            left: 0;
+            width: 100%;
+            height: 60vh;
+            background: var(--card-bg);
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.2);
+            z-index: 90;
+            transition: bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #script-overlay.visible {
+            bottom: 0;
+        }
+
+        .script-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .script-title {
+            font-weight: 900;
+            font-size: 1.2rem;
+        }
+
+        .close-script {
+            background: #eee;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-weight: bold;
+            cursor: pointer;
+            color: #555;
+        }
+
+        .script-content {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #aaa;
+            padding-bottom: 100px;
+        }
+
+        .script-sentence {
+            transition: color 0.3s, background 0.3s;
+            padding: 2px 0;
+            border-radius: 4px;
+        }
+
+        .script-sentence.active {
+            color: var(--text-main);
+            font-weight: 700;
+            background: linear-gradient(90deg, rgba(0, 122, 255, 0.1), transparent);
+        }
+
+        #loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .loading-spinner {
+            font-size: 3rem;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        .loading-text {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--primary-color);
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Settings Modal Styles */
+        #settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .settings-content {
+            background: var(--card-bg);
+            width: 90%;
+            max-width: 400px;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            animation: popIn 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .settings-header h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 900;
+        }
+
+        .close-settings {
+            background: #eee;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            font-weight: bold;
+            cursor: pointer;
+            color: #555;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .setting-item {
+            margin-bottom: 24px;
+        }
+
+        .setting-item label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: var(--text-sub);
+            font-size: 0.9rem;
+        }
+
+        .voice-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .voice-options label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--bg-color);
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin: 0;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .voice-options label:has(input:checked) {
+            background: #e3f2fd;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+        input[type="radio"] {
+            accent-color: var(--primary-color);
+            transform: scale(1.2);
+        }
+
+        .speed-options {
+            display: flex;
+            gap: 8px;
+        }
+
+        .speed-btn {
+            flex: 1;
+            padding: 10px 0;
+            border: none;
+            background: var(--bg-color);
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-main);
+            transition: all 0.2s;
+        }
+
+        .speed-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        #settings-btn {
+            background: transparent;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+
+        #settings-btn:active {
+            background: rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading" style="display: none;">
+        <div class="loading-spinner">⏳</div>
+        <div class="loading-text">AIがガイドを生成中...</div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" style="display: none;">
+        <div class="settings-content">
+            <div class="settings-header">
+                <h3 id="settings-title">Settings</h3>
+                <button class="close-settings" onclick="toggleSettings(false)">✕</button>
+            </div>
+
+            <div class="setting-item">
+                <label id="label-voice">🗣️ Guide Voice / 声質</label>>
+                <div class="voice-options">
+                    <label><input type="radio" name="voice" value="female" checked> <span id="voice-female">👩 Female
+                            (Young)</span></label>
+                    <label><input type="radio" name="voice" value="male"> <span id="voice-male">👨 Male
+                            (Young)</span></label>
+                    <label><input type="radio" name="voice" value="kyoko"> <span id="voice-kyoko">🍜 Kyoko Saito
+                            Style</span></label>
+                    <label><input type="radio" name="voice" value="tsuda"> <span id="voice-tsuda">🕶️ Tsuda-san
+                            Style</span></label>
+                    <label><input type="radio" name="voice" value="kitty"> <span id="voice-kitty">🎀 Kitty-chan
+                            Style</span></label>
+                </div>
+            </div>
+
+            <div class="setting-item">
+                <label id="label-speed">⏩ Playback Speed / 再生速度</label>>
+                <div class="speed-options">
+                    <button class="speed-btn" onclick="setSpeed(0.75)">0.75x</button>
+                    <button class="speed-btn active" onclick="setSpeed(1.0)">1.0x</button>
+                    <button class="speed-btn" onclick="setSpeed(1.25)">1.25x</button>
+                    <button class="speed-btn" onclick="setSpeed(1.5)">1.5x</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="brand-header">
+        <div style="display: flex; justify-content: space-between; align-items: top;">
+            <div>
+                <h1 class="brand-title">AI Traveler's Guide</h1>
+                <p class="brand-subtitle">Discover stories around you.</p>
+            </div>
+            <button id="settings-btn" onclick="toggleSettings(true)">⚙️</button>
+        </div>
+    </div>
+
+    <div id="header-container">
+        <div id="header-flex">
+            <div class="search-wrapper">
+                <input id="pac-input" type="text" placeholder="🔍 場所を検索 / Search location">
+                <button id="clear-search-btn" onclick="clearSearch()">✕</button>
+            </div>
+            <select id="lang-select" onchange="changeLanguage()">
+                <option value="ja">🇯🇵 日本語</option>
+                <option value="en">🇺🇸 English</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="map-container">
+        <div id="map"></div>
+        <button id="current-location-btn" onclick="backToCurrentLocation()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+        </button>
+    </div>
+
+    <div id="controls">
+        <div id="status-header"><span>📍</span>
+            <div id="status-text">周辺スポット</div>
+        </div>
+        <div class="note-text">※Wikiの場所を、GoogleMapの人気順(評価x口コミ数)で並べ替え</div>
+        <div id="spot-list"></div>
+    </div>
+
+    <div id="script-overlay">
+        <div class="script-header">
+            <div class="script-title">Guide Script</div>
+            <button class="close-script" onclick="toggleScript(false)">✕</button>
+        </div>
+        <div class="script-content" id="script-body"></div>
+    </div>
+
+    <div id="audio-player-bar">
+        <div class="player-title" id="player-title">-</div>
+        <div class="player-controls">
+            <button class="script-toggle-btn" onclick="toggleScript(true)">📝 Script</button>
+            <button onclick="togglePlay()" id="play-pause-btn">⏸</button>
+            <button onclick="stopAudio()" class="stop-btn">■</button>
+        </div>
+        <div class="player-progress-container">
+            <span id="current-time">0:00</span>
+            <input type="range" id="progress-bar" value="0" max="100" step="0.1">
+            <span id="total-duration">0:00</span>
+        </div>
+    </div>
+
+    <script
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCkjCS8BZoSFRtMDD5yMxbbSbWad-fSU78&callback=initApp&libraries=places"
+        async defer></script>
+
+    <script>
+        let map, currentMarker, placesService;
+        let currentLang = 'ja';
+        let audioObj = null;
+        let currentLat, currentLng;
+        // Config State
+        let currentSpeed = 1.0;
+        let currentVoice = 'female';
+
+        const SERVER_URL = "/generate_guide";
+        const PLACEHOLDER_IMG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'/%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'/%3E%3Cpolyline points='21 15 16 10 5 21'/%3E%3C/svg%3E`;
+        let sentenceTimings = [];
+
+        function initApp() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (p) => { initMap(p.coords.latitude, p.coords.longitude); },
+                    (e) => { initMap(35.681236, 139.767125); },
+                    { enableHighAccuracy: true }
+                );
+            } else { initMap(35.681236, 139.767125); }
+        }
+
+        function initMap(lat, lng) {
+            currentLat = lat; currentLng = lng;
+            const center = { lat: lat, lng: lng };
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: center, zoom: 15, disableDefaultUI: true, clickableIcons: false
+            });
+            currentMarker = new google.maps.Marker({ position: center, map: map, animation: google.maps.Animation.DROP });
+
+            placesService = new google.maps.places.PlacesService(map);
+            fetchSpots(lat, lng);
+            updateSettingsText(); // Initialize settings text based on current language
+            map.addListener("click", (e) => updateMapLocation(e.latLng.lat(), e.latLng.lng()));
+
+            const input = document.getElementById("pac-input");
+            const clearBtn = document.getElementById("clear-search-btn");
+            const autocomplete = new google.maps.places.Autocomplete(input);
+            autocomplete.bindTo("bounds", map);
+
+            input.addEventListener("input", () => {
+                clearBtn.style.display = input.value.length > 0 ? "flex" : "none";
+            });
+
+            autocomplete.addListener("place_changed", () => {
+                const place = autocomplete.getPlace();
+                clearBtn.style.display = "flex";
+                if (!place.geometry) return;
+                updateMapLocation(place.geometry.location.lat(), place.geometry.location.lng());
+            });
+
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.addEventListener('input', function () {
+                if (audioObj) {
+                    const seekTime = (audioObj.duration * this.value) / 100;
+                    audioObj.currentTime = seekTime;
+                }
+            });
+        }
+
+        // === 新規: 現在地へ戻る機能 ===
+        function backToCurrentLocation() {
+            const btn = document.getElementById('current-location-btn');
+            if (btn.classList.contains('loading')) return;
+
+            if (navigator.geolocation) {
+                btn.classList.add('loading');
+                navigator.geolocation.getCurrentPosition(
+                    (p) => {
+                        updateMapLocation(p.coords.latitude, p.coords.longitude);
+                        btn.classList.remove('loading');
+                    },
+                    (e) => {
+                        alert("現在地を取得できませんでした。\n位置情報の権限を確認してください。");
+                        btn.classList.remove('loading');
+                    },
+                    { enableHighAccuracy: true, timeout: 5000 }
+                );
+            } else {
+                alert("このブラウザは位置情報をサポートしていません。");
+            }
+        }
+
+        function clearSearch() {
+            const input = document.getElementById("pac-input");
+            const clearBtn = document.getElementById("clear-search-btn");
+            input.value = "";
+            clearBtn.style.display = "none";
+            input.focus();
+        }
+
+        function updateMapLocation(lat, lng) {
+            currentLat = lat; currentLng = lng;
+            const newPos = { lat: lat, lng: lng };
+            currentMarker.setPosition(newPos);
+            map.panTo(newPos);
+            fetchSpots(lat, lng);
+        }
+
+        function changeLanguage() {
+            currentLang = document.getElementById('lang-select').value;
+            fetchSpots(currentLat, currentLng);
+            updateSettingsText(); // Update UI text
+        }
+
+        function updateSettingsText() {
+            const texts = {
+                ja: {
+                    title: "設定",
+                    voiceLabel: "🗣️ ガイド音声",
+                    voiceFemale: "👩 女性 (標準)",
+                    voiceMale: "👨 男性 (標準)",
+                    voiceKyoko: "🍜 齊藤京子風",
+                    voiceTsuda: "🕶️ 津田健次郎風",
+                    voiceKitty: "🎀 ハローキティ風",
+                    speedLabel: "⏩ 再生速度"
+                },
+                en: {
+                    title: "Settings",
+                    voiceLabel: "🗣️ Guide Voice",
+                    voiceFemale: "👩 Female (Young)",
+                    voiceMale: "👨 Male (Young)",
+                    voiceKyoko: "🍜 Kyoko Saito Style",
+                    voiceTsuda: "🕶️ Tsuda-san Style",
+                    voiceKitty: "🎀 Kitty-chan Style",
+                    speedLabel: "⏩ Playback Speed"
+                }
+            };
+
+            const t = texts[currentLang];
+            document.getElementById('settings-title').innerText = t.title;
+            document.getElementById('label-voice').innerText = t.voiceLabel;
+            document.getElementById('voice-female').innerText = t.voiceFemale;
+            document.getElementById('voice-male').innerText = t.voiceMale;
+            document.getElementById('voice-kyoko').innerText = t.voiceKyoko;
+            document.getElementById('voice-tsuda').innerText = t.voiceTsuda;
+            document.getElementById('voice-kitty').innerText = t.voiceKitty;
+            document.getElementById('label-speed').innerText = t.speedLabel;
+        }
+
+        async function fetchSpots(lat, lng) {
+            const list = document.getElementById('spot-list');
+            const statusText = document.getElementById('status-text');
+
+            list.innerHTML = currentLang === 'ja' ? "<p>データを照合中...(Wiki x Google)</p>" : "<p>Merging data (Wiki x Google)...</p>";
+            statusText.innerText = currentLang === 'ja' ? "人気スポット (Wiki照合)" : "Popular Spots (Verified)";
+
+            const wikiLang = currentLang === 'ja' ? 'ja' : 'en';
+            const wikiUrl = `https://${wikiLang}.wikipedia.org/w/api.php?origin=*&action=query&format=json&generator=geosearch&ggscoord=${lat}|${lng}&ggsradius=1500&prop=extracts|pageimages&piprop=thumbnail&pithumbsize=200&exintro&explaintext&ggslimit=20`;
+
+            try {
+                const res = await fetch(wikiUrl);
+                const data = await res.json();
+
+                if (!data.query || !data.query.pages) {
+                    list.innerHTML = "<p>No spots found.</p>"; return;
+                }
+
+                const wikiSpots = Object.values(data.query.pages);
+
+                const enrichedSpots = await Promise.all(wikiSpots.map(async (spot) => {
+                    const googleData = await getGooglePlaceData(spot.title, lat, lng);
+                    return {
+                        ...spot,
+                        googleRating: googleData.rating || 0,
+                        googleReviews: googleData.user_ratings_total || 0,
+                        googlePhoto: googleData.photoUrl || null,
+                        score: (googleData.rating || 0) * (googleData.user_ratings_total || 0) // 人気スコア
+                    };
+                }));
+
+                enrichedSpots.sort((a, b) => b.score - a.score);
+
+                list.innerHTML = "";
+                enrichedSpots.forEach(place => {
+                    let imgTag;
+                    if (place.googlePhoto) {
+                        imgTag = `<img src="${place.googlePhoto}" class="spot-img" alt="${place.title}">`;
+                    } else if (place.thumbnail) {
+                        imgTag = `<img src="${place.thumbnail.source}" class="spot-img" alt="${place.title}">`;
+                    } else {
+                        imgTag = `<img src="${PLACEHOLDER_IMG}" class="spot-img" style="padding: 25px; opacity: 0.4;">`;
+                    }
+
+                    let ratingHtml = "";
+                    if (place.googleReviews > 0) {
+                        ratingHtml = `<div class="spot-rating">⭐ ${place.googleRating} <span>(${place.googleReviews.toLocaleString()})</span></div>`;
+                    } else {
+                        ratingHtml = `<div class="spot-no-rating">No reviews yet</div>`;
+                    }
+
+                    const simpleSummary = place.extract.substring(0, 60) + "...";
+
+                    const card = document.createElement('div');
+                    card.className = 'spot-card';
+                    card.innerHTML = `
+                        <div class="spot-img-box">${imgTag}</div>
+                        <div class="spot-content">
+                            <div class="spot-title">${place.title}</div>
+                            ${ratingHtml}
+                            <div class="spot-summary">${simpleSummary}</div>
+                            <div class="btn-group">
+                                <button class="mode-btn btn-simple" onclick="playAiGuide('${place.title.replace(/'/g, "\\'")}', '${encodeURIComponent(place.extract)}', this.closest('.spot-card'), 'simple')">
+                                    <span>⚡</span> ${currentLang === 'ja' ? 'かんたん' : 'Simple'}
+                                </button>
+                                <button class="mode-btn btn-detail" onclick="playAiGuide('${place.title.replace(/'/g, "\\'")}', '${encodeURIComponent(place.extract)}', this.closest('.spot-card'), 'detail')">
+                                    <span>☕</span> ${currentLang === 'ja' ? 'じっくり' : 'Detail'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+
+            } catch (e) { console.error(e); list.innerHTML = "<p>Error loading spots.</p>"; }
+        }
+
+        function getGooglePlaceData(keyword, lat, lng) {
+            return new Promise((resolve) => {
+                const request = {
+                    query: keyword,
+                    fields: ['name', 'rating', 'user_ratings_total', 'photos'],
+                    locationBias: new google.maps.LatLng(lat, lng)
+                };
+
+                placesService.findPlaceFromQuery(request, (results, status) => {
+                    if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+                        const r = results[0];
+                        let photoUrl = null;
+                        if (r.photos && r.photos.length > 0) {
+                            photoUrl = r.photos[0].getUrl({ maxWidth: 200, maxHeight: 200 });
+                        }
+                        resolve({
+                            rating: r.rating,
+                            user_ratings_total: r.user_ratings_total,
+                            photoUrl: photoUrl
+                        });
+                    } else {
+                        resolve({});
+                    }
+                });
+            });
+        }
+
+        async function playAiGuide(title, encodedWikiText, element, mode) {
+            const wikiText = decodeURIComponent(encodedWikiText);
+            document.querySelectorAll('.spot-card').forEach(el => el.classList.remove('playing'));
+            element.classList.add('playing');
+
+            const loadingEl = document.getElementById('loading');
+            const loadingText = loadingEl.querySelector('.loading-text');
+
+            if (mode === 'simple') {
+                loadingText.innerText = currentLang === 'ja' ? "🚀 かんたんガイド生成中..." : "🚀 Creating Simple Guide...";
+            } else {
+                loadingText.innerText = currentLang === 'ja' ? "☕ じっくりガイド生成中..." : "☕ Creating Detailed Guide...";
+            }
+            loadingEl.style.display = 'flex';
+
+            // Get selected voice from radio
+            const voices = document.getElementsByName('voice');
+            for (let v of voices) { if (v.checked) currentVoice = v.value; }
+
+            try {
+                const response = await fetch(SERVER_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        title: title,
+                        text: wikiText,
+                        lang: currentLang,
+                        mode: mode,
+                        config: {
+                            voice: currentVoice,
+                            speed: currentSpeed
+                        }
+                    })
+                });
+
+                if (!response.ok) throw new Error("Server Error");
+                const data = await response.json();
+
+                if (audioObj) { audioObj.pause(); }
+
+                audioObj = new Audio(data.audio_uri);
+                audioObj.playbackRate = currentSpeed; // Apply speed
+
+                prepareScript(data.script);
+                toggleScript(true);
+                showPlayer(title + (mode === 'simple' ? ' (⚡)' : ''));
+
+                audioObj.addEventListener('loadedmetadata', () => {
+                    document.getElementById('total-duration').innerText = formatTime(audioObj.duration);
+                    calculateSentenceTimings(data.script, audioObj.duration);
+                });
+                audioObj.addEventListener('timeupdate', () => {
+                    const current = audioObj.currentTime;
+                    const duration = audioObj.duration;
+                    document.getElementById('current-time').innerText = formatTime(current);
+                    if (duration > 0) {
+                        const percent = (current / duration) * 100;
+                        document.getElementById('progress-bar').value = percent;
+                    }
+                    updateHighlight(current);
+                });
+                audioObj.addEventListener('ended', () => {
+                    document.getElementById('play-pause-btn').innerText = "▶";
+                    element.classList.remove('playing');
+                });
+                audioObj.play();
+
+            } catch (error) {
+                console.error(error);
+                alert("ガイドの生成に失敗しました。\n\n・サーバーが起動しているか確認してください。\n・APIの制限を超えている可能性があります。\n\n詳細: " + error.message);
+                element.classList.remove('playing');
+            } finally {
+                loadingEl.style.display = 'none';
+            }
+        }
+
+        function prepareScript(fullText) {
+            const scriptBody = document.getElementById('script-body');
+            scriptBody.innerHTML = '';
+            const regex = currentLang === 'ja' ? /[^。！？\n]+[。！？\n]*/g : /[^.!?\n]+[.!?\n]*/g;
+            const sentences = fullText.match(regex) || [fullText];
+            sentences.forEach((text, index) => {
+                const span = document.createElement('div');
+                span.className = 'script-sentence';
+                span.id = `sentence-${index}`;
+                span.innerText = text;
+                scriptBody.appendChild(span);
+            });
+        }
+        function calculateSentenceTimings(fullText, totalDuration) {
+            sentenceTimings = [];
+            const sentences = document.querySelectorAll('.script-sentence');
+            let accumulatedTime = 0;
+            const totalChars = fullText.length;
+            sentences.forEach((el, index) => {
+                const textLen = el.innerText.length;
+                const ratio = textLen / totalChars;
+                const duration = totalDuration * ratio;
+                sentenceTimings.push({ index: index, start: accumulatedTime, end: accumulatedTime + duration });
+                accumulatedTime += duration;
+            });
+        }
+        function updateHighlight(currentTime) {
+            sentenceTimings.forEach(timing => {
+                const el = document.getElementById(`sentence-${timing.index}`);
+                if (currentTime >= timing.start && currentTime < timing.end) {
+                    if (!el.classList.contains('active')) {
+                        document.querySelectorAll('.script-sentence').forEach(s => s.classList.remove('active'));
+                        el.classList.add('active');
+                        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+        }
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return "0:00";
+            const min = Math.floor(seconds / 60);
+            const sec = Math.floor(seconds % 60);
+            return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        }
+        function toggleScript(show) {
+            const overlay = document.getElementById('script-overlay');
+            if (show) overlay.classList.add('visible');
+            else overlay.classList.remove('visible');
+        }
+        function showPlayer(title) {
+            const bar = document.getElementById('audio-player-bar');
+            document.getElementById('player-title').innerText = title;
+            document.getElementById('play-pause-btn').innerText = "⏸";
+            bar.classList.add('visible');
+        }
+        function togglePlay() {
+            if (!audioObj) return;
+            const btn = document.getElementById('play-pause-btn');
+            if (audioObj.paused) { audioObj.play(); btn.innerText = "⏸"; } else { audioObj.pause(); btn.innerText = "▶"; }
+        }
+        function stopAudio() {
+            if (!audioObj) return;
+            audioObj.pause(); audioObj.currentTime = 0;
+            document.getElementById('audio-player-bar').classList.remove('visible');
+            document.getElementById('script-overlay').classList.remove('visible');
+            document.getElementById('play-pause-btn').innerText = "▶";
+            document.querySelectorAll('.spot-card').forEach(el => el.classList.remove('playing'));
+        }
+
+        // === Settings Logic ===
+        function toggleSettings(show) {
+            document.getElementById('settings-modal').style.display = show ? 'flex' : 'none';
+        }
+
+        function setSpeed(speed) {
+            currentSpeed = speed;
+            // Update UI
+            document.querySelectorAll('.speed-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (parseFloat(btn.innerText) === speed) btn.classList.add('active');
+            });
+            // Update active audio checks
+            if (audioObj) {
+                audioObj.playbackRate = speed;
+            }
+        }
+    </script>
+</body>
+
+</html>
