@@ -25,7 +25,7 @@ model = genai.GenerativeModel('models/gemini-flash-latest')
 # 1. サイト表示（地図＆スポットリスト）
 @app.route('/')
 def home():
-    return render_template('google_map_app.html')
+    return render_template('google_map_app.html', google_api_key=GOOGLE_API_KEY)
 
 # 2. ガイド生成（Wikiテキストを受け取ってGeminiで要約・音声化）
 @app.route('/generate_guide', methods=['POST'])
