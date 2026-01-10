@@ -941,12 +941,22 @@
             document.getElementById('label-speed').innerText = t.speedLabel;
         }
 
+        // Cache for guide data (key: title_mode_lang_voice) -> Promise resolving to data
+        let guideCache = {};
+
+        function getCacheKey(title, mode, lang, voice) {
+            return `${title}_${mode}_${lang}_${voice}`;
+        }
+
         async function fetchSpots(lat, lng) {
             const list = document.getElementById('spot-list');
             const statusText = document.getElementById('status-text');
 
             list.innerHTML = currentLang === 'ja' ? "<p>データを照合中...(Wiki x Google)</p>" : "<p>Merging data (Wiki x Google)...</p>";
             statusText.innerText = currentLang === 'ja' ? "人気スポット (Wiki照合)" : "Popular Spots (Verified)";
+
+            // Clear cache on new location search to avoid stale context
+            guideCache = {};
 
             const wikiLang = currentLang === 'ja' ? 'ja' : 'en';
             const wikiUrl = `https://${wikiLang}.wikipedia.org/w/api.php?origin=*&action=query&format=json&generator=geosearch&ggscoord=${lat}|${lng}&ggsradius=1500&prop=extracts|pageimages&piprop=thumbnail&pithumbsize=200&exintro&explaintext&ggslimit=20`;
@@ -974,6 +984,9 @@
 
                 enrichedSpots.sort((a, b) => b.score - a.score);
 
+                // --- Trigger Background Prefetch for Top 3 Spots (Simple Mode) ---
+                prefetchGuides(enrichedSpots.slice(0, 3));
+
                 list.innerHTML = "";
                 enrichedSpots.forEach(place => {
                     let imgTag;
@@ -992,6 +1005,10 @@
                         ratingHtml = `<div class="spot-no-rating">No reviews yet</div>`;
                     }
 
+                    // Escape title for onclick safely
+                    const safeTitle = place.title.replace(/'/g, "\\'");
+                    const safeExtract = encodeURIComponent(place.extract);
+
                     const simpleSummary = place.extract.substring(0, 60) + "...";
 
                     const card = document.createElement('div');
@@ -1003,10 +1020,10 @@
                             ${ratingHtml}
                             <div class="spot-summary">${simpleSummary}</div>
                             <div class="btn-group">
-                                <button class="mode-btn btn-simple" onclick="playAiGuide('${place.title.replace(/'/g, "\\'")}', '${encodeURIComponent(place.extract)}', this.closest('.spot-card'), 'simple')">
+                                <button class="mode-btn btn-simple" onclick="playAiGuide('${safeTitle}', '${safeExtract}', this.closest('.spot-card'), 'simple')">
                                     <span>⚡</span> ${currentLang === 'ja' ? 'かんたん' : 'Simple'}
                                 </button>
-                                <button class="mode-btn btn-detail" onclick="playAiGuide('${place.title.replace(/'/g, "\\'")}', '${encodeURIComponent(place.extract)}', this.closest('.spot-card'), 'detail')">
+                                <button class="mode-btn btn-detail" onclick="playAiGuide('${safeTitle}', '${safeExtract}', this.closest('.spot-card'), 'detail')">
                                     <span>☕</span> ${currentLang === 'ja' ? 'じっくり' : 'Detail'}
                                 </button>
                             </div>
@@ -1016,6 +1033,46 @@
                 });
 
             } catch (e) { console.error(e); list.innerHTML = "<p>Error loading spots.</p>"; }
+        }
+
+        function prefetchGuides(spots) {
+            console.log("🚀 Starting prefetch for top spots...");
+            // Get current default settings for prefetch
+            let prefetchVoice = 'female'; // Default
+            const voices = document.getElementsByName('voice');
+            for (let v of voices) { if (v.checked) prefetchVoice = v.value; }
+
+            spots.forEach(spot => {
+                const key = getCacheKey(spot.title, 'simple', currentLang, prefetchVoice);
+
+                // Start fetch and store Promise in cache immediately
+                if (!guideCache[key]) {
+                    console.log(`[Prefetch] Requesting: ${spot.title}`);
+                    guideCache[key] = fetchGuideData(spot.title, spot.extract, 'simple', currentLang, prefetchVoice, currentSpeed);
+                }
+            });
+        }
+
+        // Extracted fetch logic to reuse for both prefetch and explicit click
+        async function fetchGuideData(title, wikiText, mode, lang, voice, speed) {
+            const response = await fetch(SERVER_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title: title,
+                    text: wikiText,
+                    lang: lang,
+                    mode: mode,
+                    config: {
+                        voice: voice,
+                        speed: speed
+                    }
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Server Error");
+            return data;
         }
 
         function getGooglePlaceData(keyword, lat, lng) {
@@ -1054,7 +1111,7 @@
             const loadingText = loadingEl.querySelector('.loading-text');
 
             if (mode === 'simple') {
-                loadingText.innerText = currentLang === 'ja' ? "🚀 かんたんガイド生成中..." : "🚀 Creating Simple Guide...";
+                loadingText.innerText = currentLang === 'ja' ? "🚀 ガイドを準備中..." : "🚀 Preparing Guide...";
             } else {
                 loadingText.innerText = currentLang === 'ja' ? "☕ じっくりガイド生成中..." : "☕ Creating Detailed Guide...";
             }
@@ -1064,24 +1121,23 @@
             const voices = document.getElementsByName('voice');
             for (let v of voices) { if (v.checked) currentVoice = v.value; }
 
-            try {
-                const response = await fetch(SERVER_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        title: title,
-                        text: wikiText,
-                        lang: currentLang,
-                        mode: mode,
-                        config: {
-                            voice: currentVoice,
-                            speed: currentSpeed
-                        }
-                    })
-                });
+            const cacheKey = getCacheKey(title, mode, currentLang, currentVoice);
 
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || "Server Error");
+            try {
+                let data;
+
+                // Check Cache
+                if (guideCache[cacheKey]) {
+                    console.log(`[Cache Hit] Using pre-fetched data for: ${title}`);
+                    // Await the existing promise (whether finished or still pending)
+                    data = await guideCache[cacheKey];
+                } else {
+                    console.log(`[Cache Miss] Fetching fresh data for: ${title}`);
+                    // Fetch and cache for future reuse
+                    const promise = fetchGuideData(title, wikiText, mode, currentLang, currentVoice, currentSpeed);
+                    guideCache[cacheKey] = promise;
+                    data = await promise;
+                }
 
                 if (audioObj) { audioObj.pause(); }
 
@@ -1114,7 +1170,10 @@
 
             } catch (error) {
                 console.error(error);
-                alert("ガイドの生成に失敗しました。\n\n・サーバーが起動しているか確認してください。\n・APIの制限を超えている可能性があります。\n\n詳細: " + error.message);
+                // Remove failed promise from cache so user can retry
+                delete guideCache[cacheKey];
+
+                alert("ガイドの生成に失敗しました。\n\n詳細: " + error.message);
                 element.classList.remove('playing');
             } finally {
                 loadingEl.style.display = 'none';
