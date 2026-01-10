@@ -552,8 +552,8 @@
         <div style="position: relative; text-align: center;">
             <h1 class="brand-title">TRAVEL QUEST</h1>
             <p class="brand-subtitle">AI Companion Guide</p>
-            <button id="settings-btn" onclick="toggleSettings(true)"
-                style="position:absolute; top:50%; right:0; transform:translateY(-50%); background:black; color:white; border:2px solid white; padding:5px 10px; font-family:'DotGothic16',sans-serif; cursor:pointer;">設定</button>
+            <img src="/static/settings_gear.png" id="settings-btn" onclick="toggleSettings(true)" alt="Settings"
+                style="position:absolute; top:50%; right:0; transform:translateY(-50%); width:40px; height:40px; cursor:pointer; image-rendering: pixelated;">
         </div>
     </div>
 
@@ -583,6 +583,9 @@
                 <p>Lv.： <span style="color:var(--highlight-color);">1</span></p>
                 <p style="font-size:0.8rem; color:#aaa;">次のレベルまで： 999 exp</p>
             </div>
+
+            <button onclick="editProfile()" class="rpg-btn"
+                style="width:100%; margin-top:15px; font-size:1rem; border:1px solid #aaa;">冒険の書を書き直す</button>
 
             <button class="rpg-btn" style="margin-top:20px; width:100%;" onclick="closeStatusModal()">閉じる</button>
         </div>
@@ -659,14 +662,6 @@
                     <button class="speed-btn" onclick="setSpeed(1.5)"
                         style="flex:1; background:black; color:white; border:1px solid white;">1.5x</button>
                 </div>
-            </div>
-
-            <hr style="border-top:1px dashed #555; margin:20px 0;">
-
-            <div class="setting-item">
-                <label>📝 冒険の書</label>
-                <button onclick="editProfile()" class="rpg-btn"
-                    style="width:100%; margin-top:10px; font-size:1rem;">書き直す</button>
             </div>
         </div>
     </div>
