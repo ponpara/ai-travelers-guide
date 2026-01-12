@@ -833,7 +833,7 @@
 
         async function fetchSpots(lat, lng) {
             const list = document.getElementById('spot-list');
-            list.innerHTML = "<p>マップをスキャン中...</p>";
+            list.innerHTML = "<p>マップをスキャン中... (評価データを取得しています)</p>";
             guideCache = {};
 
             const wikiLang = 'ja';
@@ -848,16 +848,37 @@
                 }
 
                 const wikiSpots = Object.values(data.query.pages);
-                wikiSpots.sort((a, b) => b.extract.length - a.extract.length);
 
-                prefetchGuides(wikiSpots.slice(0, 3));
+                // --- Pre-fetch Ratings & Sort ---
+                const spotsWithRatings = await Promise.all(wikiSpots.map(async (place) => {
+                    const ratingData = await getPlaceDetails(place.title);
+                    return {
+                        ...place,
+                        rating: ratingData.rating || 0,
+                        reviews: ratingData.reviews || 0,
+                        score: (ratingData.rating || 0) * (ratingData.reviews || 0)
+                    };
+                }));
+
+                // Sort by Score (Rating * Reviews) Descending
+                spotsWithRatings.sort((a, b) => b.score - a.score);
+
+                prefetchGuides(spotsWithRatings.slice(0, 3));
 
                 list.innerHTML = "";
-                wikiSpots.forEach(place => {
+                spotsWithRatings.forEach(place => {
                     let imgTag = `<img src="${place.thumbnail ? place.thumbnail.source : PLACEHOLDER_IMG}" class="spot-img">`;
                     const safeTitle = place.title.replace(/'/g, "\\'");
                     const safeExtract = encodeURIComponent(place.extract);
                     const simpleSummary = place.extract.substring(0, 60) + "...";
+
+                    // Format Rating String
+                    let ratingHtml = "";
+                    if (place.rating > 0) {
+                        ratingHtml = `<span style="color:#f7e600;">★ ${place.rating} (${place.reviews}件)</span>`;
+                    } else {
+                        ratingHtml = `<span style="color:#777;">評価なし</span>`;
+                    }
 
                     const card = document.createElement('div');
                     card.className = 'spot-card';
@@ -865,7 +886,7 @@
                         <div class="spot-img-box">${imgTag}</div>
                         <div class="spot-content">
                             <div class="spot-title">${place.title}</div>
-                            <div class="spot-rating">QUEST ★</div>
+                            <div class="spot-rating">${ratingHtml}</div>
                             <div class="spot-summary">${simpleSummary}</div>
                             <div class="btn-group">
                                 <button class="mode-btn btn-simple" onclick="playAiGuide('${safeTitle}', '${safeExtract}', this.closest('.spot-card'), 'simple')">
@@ -880,6 +901,28 @@
                     list.appendChild(card);
                 });
             } catch (e) { console.error(e); list.innerHTML = "<p>通信エラーが発生しました。</p>"; }
+        }
+
+        // Helper to get Google Map details (Promise wrapper)
+        function getPlaceDetails(query) {
+            return new Promise((resolve) => {
+                if (!placesService) { resolve({}); return; }
+                const request = {
+                    query: query,
+                    fields: ['name', 'rating', 'user_ratings_total']
+                };
+
+                placesService.findPlaceFromQuery(request, (results, status) => {
+                    if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+                        resolve({
+                            rating: results[0].rating,
+                            reviews: results[0].user_ratings_total
+                        });
+                    } else {
+                        resolve({}); // Fail gracefully
+                    }
+                });
+            });
         }
 
         function prefetchGuides(spots) {
