@@ -36,111 +36,112 @@ def generate_guide():
         place_name = data.get('title', 'This place')
         lang = data.get('lang', 'ja')
         mode = data.get('mode', 'detail') # simple/detail
-        # config: { speed: number, voice: 'female'|'male'|'tsuda'|'kitty' }
+        
+        # config: { speed: number, voice: ..., companion: 'dog'|'bird'|... }
         config = data.get('config', {}) 
         voice_type = config.get('voice', 'female')
+        companion = config.get('companion', 'dog') # Default to dog
 
-        print(f"[{place_name}] Request: {mode} / Voice: {voice_type} / Lang: {lang}")
+        print(f"[{place_name}] Request: {mode} / Voice: {voice_type} / Companion: {companion} / Lang: {lang}")
 
-        # --- Voice Settings (Pitch & Rate only) ---
-        # Default settings (Female)
+        # --- Voice Settings (Pitch & Rate) ---
+        # Default settings
         voice_name = "ja-JP-NanamiNeural" if lang == 'ja' else "en-US-AvaNeural"
         voice_pitch = "+0Hz"
         voice_rate = "+0%"
         
-        if voice_type == 'male':
-            voice_name = "ja-JP-KeitaNeural" if lang == 'ja' else "en-US-AndrewNeural"
-        
-        elif voice_type == 'tsuda':
-            # 津田健次郎風 (渋い男性)
-            # 低音でゆっくり話すことで落ち着きと深みを表現
-            voice_name = "ja-JP-KeitaNeural" if lang == 'ja' else "en-US-BrianNeural"
-            voice_pitch = "-12Hz" 
+        # Adjust voice settings based on Companion TYPE
+        if companion == 'dog':
+            # Dog: Energetic (Little high pitch)
+            voice_rate = "+10%"
+            voice_pitch = "+5Hz"
+        elif companion == 'bird':
+            # Owl: Wise (Little slow)
             voice_rate = "-5%"
+            voice_pitch = "-5Hz"
+        elif companion == 'monkey':
+            # Monkey: Fast and High
+            voice_rate = "+15%"
+            voice_pitch = "+15Hz"
+        elif companion == 'bear':
+            # Bear: Deep and Slow
+            voice_name = "ja-JP-KeitaNeural" # Male voice for bear
+            voice_rate = "-10%"
+            voice_pitch = "-15Hz"
+        elif companion == 'horse':
+            # Horse: Noble (Standard/Elegant)
+            voice_rate = "0%"
+            voice_pitch = "-5Hz"
 
-        elif voice_type == 'kitty':
-            # ハローキティ風 (元気な女性)
-            # ピッチを上げて少し早口にすることで明るさを表現
-            voice_name = "ja-JP-NanamiNeural" if lang == 'ja' else "en-US-AnaNeural"
-            voice_pitch = "+20Hz"
-            voice_rate = "+5%"
-            
-        elif voice_type == 'kyoko':
-            # 齊藤京子風 (低音ボイスのアイドル)
-            # Nanamiをベースにピッチを下げてハスキーさを表現
-            voice_name = "ja-JP-NanamiNeural" if lang == 'ja' else "en-US-AvaNeural"
-            voice_pitch = "-10Hz"
-            voice_rate = "-2%"
-
-        # --- Prompt Construction (UNIFIED) ---
-        # キャラクターごとの口調指示は廃止し、常に「公式ガイド風」を使用
+        # --- Prompt Construction (Persona Based) ---
         
+        # Define persona instructions
+        persona_instruction = ""
+        if lang == 'ja':
+            if companion == 'dog':
+                persona_instruction = "あなたの正体は「忠実な柴犬」です。語尾に「ワン！」や「だワン」をつけて、元気に案内してください。「ご主人様」と呼びかけてください。"
+            elif companion == 'bird':
+                persona_instruction = "あなたの正体は「物知りなフクロウ」です。語尾に「ホ」や「ですので」をつけて、博士のように落ち着いて解説してください。"
+            elif companion == 'monkey':
+                persona_instruction = "あなたの正体は「いたずら好きのサル」です。語尾に「ウッキー」や「だキー」をつけて、ハイテンションで案内してください。"
+            elif companion == 'bear':
+                persona_instruction = "あなたの正体は「優しいクマ」です。語尾に「クマ」をつけて、のんびりと優しく案内してください。「～だなぁ」という口調が特徴です。"
+            elif companion == 'horse':
+                persona_instruction = "あなたの正体は「高貴な馬」です。語尾に「ヒヒーン」はつけすぎず、丁寧語で「～でございます」と執事のように案内してください。"
+        else:
+            # Simple English fallbacks
+             persona_instruction = f"You are a {companion}. Speak with the personality of a {companion}."
+
         if mode == 'simple':
-            # Simple Mode Prompt (Trivia/Context focused)
+            # Simple Mode
             if lang == 'ja':
                 prompt = f"""
-                観光スポット「{place_name}」に今まさに立っている旅行者に向けて、その場所の「最も面白いトリビア」や「意外な歴史」を2〜3文（100〜140文字）で教えてください。
+                あなたは旅行者の相棒（{companion}）として、現在地「{place_name}」の面白いトリビアを2〜3文で教えてください。
+                
+                【役割設定】
+                {persona_instruction}
                 
                 【必須・構成】
-                ・**必ず「{place_name}は、...」という書き出しで始めてください。**（「ここは」や「この場所は」は禁止）
-                ・まず、そこが何なのか（寺、公園など）を簡潔に言い、その後に「実は...」と意外な事実を続けてください。
-                
-                【禁止】「赤い建物です」等の見た目の描写（見ればわかるため）。
+                ・**書き出しは「{place_name}だ{('ワン' if companion=='dog' else '')}！」のように、場所の名前を呼ぶことから始めてください。**
+                ・その場所が何なのか簡潔に教え、その後に「実は...」と意外な情報を一つ教えてください。
                 
                 [元データ]
                 {wiki_text[:1000]}
                 """
             else:
-                prompt = f"""
-                Tell a traveler standing at "{place_name}" the most interesting trivia or hidden history in 2-3 sentences (40-60 words).
-                
-                [Requirements]
-                - **MUST start with "{place_name} is..."**. (Do not use "Here is" or "This place is")
-                - First, briefly state what it is, then follow with "Actually..." to share a hidden fact.
-                
-                [Prohibited] Visual descriptions.
+                 prompt = f"""
+                Acting as a travel companion ({companion}), tell the user about "{place_name}" in 2-3 sentences.
+                {persona_instruction}
+                Start by introducing the place name.
                 
                 [Source]
                 {wiki_text[:1000]}
                 """
-
         else:
-            # Detail Mode Prompt (Deep dive with gentle intro)
+            # Detail Mode
             if lang == 'ja':
                 prompt = f"""
-                あなたは現地にいる旅行者にその場所の深い魅力を伝えるプロのガイドです。「{place_name}」について解説してください。
-
-                【構成指示】
-                1. **導入 (10秒程度)**: まず、「{place_name}は...」という主語で始め、ここが何なのか（寺なのか、公園なのか等）を優しく完結に説明してください。「ここは」等の代名詞は避けてください。
-                2. **本題**: その後、「実は...」と切り出し、歴史的背景や隠されたエピソード、意外なトリビアを深く語ってください。
-                3. **締め**: 滞在が楽しくなるような言葉で締めてください。
-
-                【禁止事項】
-                ・「目の前にあるものの詳細な見た目説明」（見ればわかるため）。
-                ・「住所の説明」（既に現地にいるため）。
-
-                【制約】
-                ・文字数は「400文字程度（読み上げ約1分）」
+                あなたは旅行者の相棒（{companion}）として、現在地「{place_name}」について詳しく（400文字程度）ガイドしてください。
                 
-                [元データ] {wiki_text[:5000]}
+                【役割設定】
+                {persona_instruction}
+
+                【構成】
+                1. 挨拶と場所の紹介
+                2. 歴史や背景（元データに基づく）
+                3. 見どころや豆知識
+                4. 締めの言葉（次の冒険へ促す）
+
+                [元データ]
+                {wiki_text[:2000]}
                 """
             else:
-                prompt = f"""
-                You are a professional guide explaining "{place_name}" to a traveler currently at the spot.
-
-                [Structure]
-                1. **Intro (approx 10s)**: Start with "{place_name} is...", gently and briefly explaining what this place is. Do not use generic pronouns like "Here is...".
-                2. **Deep Dive**: Then, transition with "Actually..." or "Historically..." to share hidden facts, deep history, and trivia.
-                3. **Conclusion**: End with a welcoming closing.
-
-                [Strict Prohibitions]
-                - Visual descriptions of obvious things.
-                - Address/Location explanations.
-
-                [Constraints]
-                - Approx 150 words (1 min speech).
+                 prompt = f"""
+                Acting as a travel companion ({companion}), explain "{place_name}" in detail (approx 150 words).
+                {persona_instruction}
                 
-                [Source] {wiki_text[:5000]}
+                [Source]
+                {wiki_text[:2000]}
                 """
 
         # --- Generate Text ---
@@ -151,9 +152,6 @@ def generate_guide():
         # 非同期関数を同期的に実行するためのヘルパー
         async def synthesize_text(text, voice, pitch, rate):
             # edge-tts set pitch/rate via communicate object
-            # Note: edge-tts API usually takes options in the text string or args, 
-            # but for simple pitch/rate, we pass them as params if library supports, 
-            # Or formatted as "+0Hz", "+0%" strings.
             communicate = edge_tts.Communicate(text, voice, pitch=pitch, rate=rate)
             out = io.BytesIO()
             async for chunk in communicate.stream():
